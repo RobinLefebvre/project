@@ -35,8 +35,8 @@ router.post('/add', async (request, response, next) =>
   }
 }); 
 
-/** POST - adds the user into the database
- * @param request.body.name - the username
+/** POST - gets the user data from the database, based on name
+ * @param request.body.name - the user's name
  * @returns the created database user 
  * @throws user already exists & other database errors */
 router.post('/get', async (request, response, next) => 
@@ -57,10 +57,9 @@ router.post('/get', async (request, response, next) =>
   }
 }); 
 
-/** POST - adds the user into the database
- * @param request.body.name - the username
- * @returns the created database user 
- * @throws user already exists & other database errors */
+/** POST - gets the whole list of users from the database
+ * @returns {Array} users' _id and name
+ * @throws collection is empty & other database errors */
 router.get('/getList', auth, async (request, response, next) => 
 {
   try
@@ -74,10 +73,10 @@ router.get('/getList', auth, async (request, response, next) =>
   }
 }); 
 
-/** POST - Add user to the current user's FriendsList
- * @param request.body.name - name of the user to add
+/** POST - Add user to the current user's friends
+ * @param request.body.name - name of the user to add as friend
  * @returns the created document's _id
- * @throws user already exists & other database errors */
+ * @throws cannot add yourself as friend, user is already a friend, user doesn't exist & other database errors */
 router.post('/addFriend', auth, async (request, response, next) => 
 {
   let friendName = request.body.name;
@@ -104,7 +103,6 @@ router.post('/addFriend', auth, async (request, response, next) =>
     next(error);
   }
 }); 
-
 
 /** POST - checks login for given user input
  * @param request.body.name - the username
