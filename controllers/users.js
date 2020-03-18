@@ -23,6 +23,8 @@ router.post('/add', async (request, response, next) =>
   let pass = request.body.pass;
   if(!name || !pass)
     next({"message" : "Missing request parameters."});
+  if(name == "" || pass == "")
+    next({"message" : "Empty request parameters."});
 
   try 
   {
@@ -44,7 +46,9 @@ router.post('/get', async (request, response, next) =>
   let name = request.body.name;
   if(!name)
     next({"message" : "Missing request parameters."});
-  
+  if(name == "")
+    next({"message" : "Empty request parameters."});
+
   try
   {
     let result = await Users.getByName(name)
@@ -82,6 +86,8 @@ router.post('/addFriend', auth, async (request, response, next) =>
   let friendName = request.body.name;
   if(!friendName)
     next({"message" : "Missing request parameters."});
+  if(friendName == "")
+    next({"message" : "Empty request parameters."});
   if(friendName == request.session.user.name)
     next({"message" : "Cannot add yourself as friend."});
   
@@ -115,7 +121,9 @@ router.post('/login', async (request, response, next) =>
   let pass = request.body.pass;
   if(!name || !pass)
     next({"message" : "Missing request parameters."});
-    
+  if(name == "" || pass == "")
+    next({"message" : "Empty request parameters."});
+
   try
   {
     let result = await Users.login(name, pass);
