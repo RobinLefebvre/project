@@ -64,7 +64,7 @@ router.post('/get', async (request, response, next) =>
 /** POST - gets the whole list of users from the database
  * @returns {Array} users' _id and name
  * @throws collection is empty & other database errors */
-router.get('/getList', auth, async (request, response, next) => 
+router.get('/getList', async (request, response, next) => 
 {
   try
   {
