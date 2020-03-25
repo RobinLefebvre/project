@@ -17,7 +17,7 @@ const Users = require('../models/Users');
  * @param request.body.pass - the plain text password 
  * @returns the created document's _id
  * @throws user already exists & other database errors */
-router.post('/add', async (request, response, next) => 
+router.post('/create', async (request, response, next) => 
 {
   let name = request.body.name;
   let pass = request.body.pass;
@@ -28,7 +28,7 @@ router.post('/add', async (request, response, next) =>
 
   try 
   {
-    let result = await Users.add(name, pass);
+    let result = await Users.create(name, pass);
     response.status(200).send(result.insertedId);
   } 
   catch(error)

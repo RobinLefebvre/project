@@ -21,7 +21,7 @@ module.exports = class User
    * @param {String} pass - the plain text password 
    * @returns the created database user 
    * @throws user already exists & other database errors */
-  static async add(name, pass)
+  static async create(name, pass)
   {
     try
     {
