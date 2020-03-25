@@ -32,7 +32,7 @@ module.exports = class User
       if(user !== null) 
         throw new Error("User already exists.");
 
-      let data = { name : name, pass : encrypt.encryptPass(pass) };
+      let data = { name : name, pass : encrypt.encryptPass(pass), createdOn : new Date().getTime() };
       return (await usersCollection.insertOne(data))
     }
     catch(error)
