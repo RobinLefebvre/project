@@ -10,7 +10,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 
 /** Models */
-const Users = require('../models/Users');
+const User = require('../models/Users');
 const Channel = require('../models/Channels');
 
 /** POST - adds the User into the database
