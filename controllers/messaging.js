@@ -69,7 +69,7 @@ router.get('/get', auth, async (request, response, next) =>
 {
   try
   {
-    let result = await Channel.getByUuid(request.query.uuid, request.session.user.name);
+    let result = await Channel.getByUuid(request.session.user.name, request.query.uuid);
     response.status(200).send(result);
   }
   catch (error)
