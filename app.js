@@ -46,7 +46,7 @@ app.use(responseHandler.handleCors);
 /** Login - Morgan */
 morgan.token('sessionid', function(req, res, param) {return req.sessionID;});
 morgan.token('user', function(req, res, param) {if(req.session.user && req.session.user.name){ return req.session.user.name} return "Anonymous User";});
-app.use(morgan(`\n[-- :date --]\n  :remote-addr\n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
+app.use(morgan(`\n[-- :date --]\n :user - :sessionid @ :remote-addr \n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
 /** Session management */
 app.use(session( { secret : 'projectSecret', saveUninitialized: true, resave: true, cookie: { httpOnly: false, sameSite: false, maxAge: 60000000 } } )); 
 /** Controllers routing - c.f. config.js for configuring the routes and controllers */
