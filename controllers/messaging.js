@@ -90,10 +90,7 @@ router.get('/getList', auth, async (request, response, next) =>
 {
   try
   {
-    let user = request.session.user.name;
-    let result = await Channel.getList(user);
-    if(result.length == 0)
-      throw new Error("Collection is empty.")
+    let result = await Channel.getList(request.session.user.name);
     response.status(200).send(result);
   }
   catch (error)
