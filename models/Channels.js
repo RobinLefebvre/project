@@ -84,6 +84,7 @@ module.exports = class Channel
       throw error;
     };
   }
+
   /** @function addUser - Adds User to Channel
    * @param {String} channelName - the Channel's name
    * @param {String} username - the username
@@ -121,6 +122,7 @@ module.exports = class Channel
       throw error;
     }
   }
+  
   /** @function postMessage - Add user to channel
    * @param {String} channelID - the Channel's uuid
    * @param {String} username - the message author's name
