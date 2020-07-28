@@ -17,7 +17,7 @@ const Channel = require('../models/Channels');
  * @middleware - auth
  * @param request.body.users - the Channel users
  * @param request.body.name - the Channel name
- * @throws "Missing request parameters.", "Must provide users as an array."
+ * @throws "Missing request parameters", "Must provide users as an array."
  * @returns {Channel} */
 router.post('/create', auth, async (request, response, next) => 
 {
@@ -38,8 +38,24 @@ router.post('/create', auth, async (request, response, next) =>
         throw new Error("User doesn't exist");
     }
 
-    // Create the channel
     let result = await Channel.create(users, name);
+    response.status(200).send(result.insertedId);
+  }
+  catch (error)
+  {
+    next(error);
+  }
+})
+
+/** POST - Deletes a Channel from database
+ * @middleware - auth
+ * @todo - make and use adminAuth middleware
+ * @param request.body.uuid - the Channel's uuid */
+router.post('/delete', auth, async (request, response, next) => 
+{
+  try
+  {
+    let result = await Channel.delete(request.body.uuid);
     response.status(200).send(result.insertedId);
   }
   catch (error)
@@ -57,10 +73,7 @@ router.get('/get', auth, async (request, response, next) =>
 {
   try
   {
-    let name = request.query.uuid;
-    let user = request.session.user.name;
-
-    let result = await Channel.getByUuid(user, name);
+    let result = await Channel.getByUuid(request.query.uuid, request.session.user.name);
     response.status(200).send(result);
   }
   catch (error)
@@ -71,13 +84,16 @@ router.get('/get', auth, async (request, response, next) =>
 
 /** GET - Gets the list of Channels available to logged in User.
  * @middleware - auth
- * @returns {Array} the channels list */
+ * @returns {Array} the channels list
+ * @throws "Collection is empty" & other database errors */
 router.get('/getList', auth, async (request, response, next) => 
 {
   try
   {
     let user = request.session.user.name;
     let result = await Channel.getList(user);
+    if(result.length == 0)
+      throw new Error("Collection is empty.")
     response.status(200).send(result);
   }
   catch (error)
@@ -96,14 +112,7 @@ router.post('/postMessage', auth, async (request, response, next) =>
 {
   try
   {
-    let content = request.body.content;
-    let channel = request.body.channel;
-    let user = request.session.user.name;
-
-    if(!content || !channel)
-      throw new Error("Missing request parameters");
-
-    let result = await Channel.postMessage(channel, user, content);
+    let result = await Channel.postMessage( request.body.channel, request.session.user.name, request.body.content);
     response.status(200).send(result);
   }
   catch (error)

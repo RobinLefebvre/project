@@ -11,6 +11,7 @@ const auth = require('../middleware/auth');
 
 /** Models */
 const Users = require('../models/Users');
+const Channel = require('../models/Channels');
 
 /** POST - adds the User into the database
  * @param {Object} request.body - {name : String, pass : String} */
@@ -19,7 +20,8 @@ router.post('/create', async (request, response, next) =>
   try 
   {
     let user = new User(request.body);
-    let result = await user.create();
+    let result = await user.create();    
+    await Channel.addUser('Global', result.ops[0].name)
     response.status(200).send(result.insertedId);
   } 
   catch(error)
@@ -37,6 +39,18 @@ router.post('/delete', auth, async (request, response, next) =>
   try 
   {
     let result = await User.remove(request.body.name);
+    if(result)
+    {
+      await User.remove(b.name);
+      let channels = await Channel.getList(b.name);
+      if(channels)
+      {
+        channels.forEach(async (ch) => 
+        {
+          await Channel.removeUser(ch.uuid, b.name);
+        })
+      }
+    }
     response.status(200).send(result.ok);
   } 
   catch(error)

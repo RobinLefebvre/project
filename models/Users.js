@@ -12,8 +12,13 @@ module.exports = class User
 {
   constructor(args)
   {
+    if(!args.name || !args.pass)
+      throw new Error("Missing request parameters.");
+    if(args.name == "" || args.pass == "")
+      throw new Error("Empty request parameters.");
+
     this.name = args.name;
-    this.pass = args.pass;
+    this.pass = encrypt.encryptPass(args.pass);
   }
 
   /** @function create - adds a new User into database
@@ -24,8 +29,8 @@ module.exports = class User
     try
     {
       console.log(`Creating new User ${this.name}.`);
-      let usersCollection = db.get().collection('users');
 
+      let usersCollection = db.get().collection('users');
       let user = await usersCollection.findOne({name : this.name})
       if(user !== null) 
         throw new Error("User already exists.");
@@ -44,16 +49,13 @@ module.exports = class User
   * @throws "Empty request parameters", "User doesn't exist" & other database errors */
   static async remove(name)
   {
-    if(!name || name == "")
-      throw new Error("Empty request parameters.");
     try
     {
       console.log(`Removing User ${name}.`);
       let usersCollection = db.get().collection('users');
-
       let user = await usersCollection.findOne({name : name})
       if(user == null) 
-        throw new Error("User doesn't exist.");
+        throw new Error("User doesn't exists.");
 
       return (await usersCollection.removeOne({name: name}))
     }
@@ -69,13 +71,11 @@ module.exports = class User
    * @throws "Empty request parameters", "User doesn't exist" & other database errors */
   static async getByName(name)
   {
-    if(!name || name == "")
-      throw new Error("Empty request parameters.");
     try
     {
       console.log(`Getting user ${name} 's data.`);
-      let usersCollection = db.get().collection('users');
 
+      let usersCollection = db.get().collection('users');
       let user = await usersCollection.findOne({name : name}); 
       if(!user)
         throw new Error("User doesn't exist.");
@@ -97,7 +97,6 @@ module.exports = class User
     {
       console.log(`Getting users list.`);
       let usersCollection = db.get().collection('users');
-
       let users = await usersCollection.find({}).project({name : 1}).toArray();
       if(users.length == 0)
         throw new Error("Collection is empty.");
@@ -117,13 +116,10 @@ module.exports = class User
    * @throws "Empty request parameters", "User doesn't exist", "Mismatched password" & other database errors */
   static async login(name, pass)
   {
-    if(!name || !pass || name == "" || pass == "")
-      throw new Error("Empty request parameters.");
     try
     {
       console.log(`Login for user ${name}.`);
       let usersCollection = db.get().collection('users');
-
       let user = await usersCollection.findOne({name : name});
 
       if(!user)
@@ -142,7 +138,7 @@ module.exports = class User
       throw error;
     }  
   }
-
+  
   /** @function addFriend - adds a new user the friends list
    * @param {String} name - name of current user
    * @param {String} friendName - name of the friend
@@ -153,6 +149,7 @@ module.exports = class User
     try
     {
       console.log(`Adding ${friendName} into ${name}'s friends.`);
+
       let usersCollection = db.get().collection('users');
 
       let friend = await usersCollection.findOne({name : friendName});
@@ -169,7 +166,7 @@ module.exports = class User
     }
   }
 
-  /** @function removeFriend - adds a new user the friends list
+  /** @function addFriend - adds a new user the friends list
    * @param {String} name - name of current user
    * @param {String} friendName - name of the friend
    * @returns the user
@@ -179,6 +176,7 @@ module.exports = class User
     try
     {
       console.log(`Removing ${friendName} from ${name}'s friends.`);
+
       let usersCollection = db.get().collection('users');
 
       let friend = await usersCollection.findOne({name : friendName});

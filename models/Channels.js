@@ -43,7 +43,10 @@ module.exports = class Channel
     try
     {
       console.log(`Getting list of Channels.`);
-      return (await db.get().collection('channels').find({users : name}).project({_id : 0, name : 1, uuid: 1, users : 1}).toArray())
+      let channels = (await db.get().collection('channels').find({users : name}).project({_id : 0, name : 1, uuid: 1, users : 1}).toArray())
+      if(channels.length == 0)
+        throw new Error("Collection is empty.");
+      return channels;
     }
     catch(error)
     {
