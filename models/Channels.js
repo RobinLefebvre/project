@@ -75,20 +75,15 @@ module.exports = class Channel
   }
 
   /** @function getByName - get a Channel by name
-   * @param user - the current logged in user name
+   * @deprecated - Only used at init server stage
    * @param name - the Channel's name 
    * @throws "Channel doesn't exist", "Empty request parameters" */
-  static async getByName(user, name)
+  static async getByName( name)
   {
     try
     {
-      if(!user || !name || user == "" || name == "")
-        throw new Error("Empty request parameters.");
-
       console.log(`Getting Channel ${name}`);
-      let result = (await db.get().collection('channels').findOne({users : user, name : name}, { projection: {_id : 0, uuid : 0, users : 0, createdOn : 0}}))
-      if(!result)
-        throw new Error("Channel doesn't exist.");
+      let result = (await db.get().collection('channels').findOne({name : name}))
       return result;
     }
     catch(error)
