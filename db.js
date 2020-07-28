@@ -17,21 +17,21 @@ var state = { db : null };
  * @returns The DB connection */
 exports.connect = (url, options, callback) =>
 {
-    if(state.db) return callback();
+  if(state.db) return callback();
 
-    MongoClient.connect(url, options, (error, result) => 
-    {
-        if(error) throw new Error(error);
-        state.db = result.db('project');
-        callback(error, result);
-    });
+  MongoClient.connect(url, options, (error, result) => 
+  {
+    if(error) throw new Error(error);
+    state.db = result.db('project');
+    callback(error, result);
+  });
 }
 
 /** @function get - Exposes the database
  * @returns The content of the Singleton-like db state */
 exports.get = () => 
 {
-    return state.db;
+  return state.db;
 }
 
 /** @function close - Closes the MongoDB connection
@@ -39,13 +39,13 @@ exports.get = () =>
  * @returns undefined */
 exports.close = (callback) => 
 {
-    if(state.db)
+  if(state.db)
+  {
+    state.db.close((error, result) => 
     {
-        state.db.close((error, result) => 
-        {
-            state.db = null;
-            state.mode = null;
-            callback(error);
-        })
-    }
+      state.db = null;
+      state.mode = null;
+      callback(error);
+    })
+  }
 }
