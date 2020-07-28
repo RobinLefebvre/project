@@ -1,0 +1,402 @@
+{
+	"info": {
+		"_postman_id": "487ecffe-e1c5-4543-a4f8-07c713b5754f",
+		"name": "API PROD CALLS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "users/create",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"name\": \"Nobby\",\n   \"pass\": \"admin\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/users/create",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/delete",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"name\": \"\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/users/delete",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/addFriend",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\" : \"Dams\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/users/addFriend",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"addFriend"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/removeFriend",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\" : \"\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/users/removeFriend",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"removeFriend"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/get",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/users/get?name=Nobby",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"get"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "Nobby"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/getList",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/users/getList",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"getList"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\" : \"Nobby\", \n\t\"pass\" : \"admin\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/users/login",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/logout",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/users/logout",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"logout"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "messaging/create",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\" : \"\",\n\t\"users\" : [\"Nobby\", \"\"]\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/messaging/create",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"messaging",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "messaging/delete",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"uuid\" : \"\"\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/messaging/delete",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"messaging",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "messaging/getList",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/messaging/getList",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"messaging",
+						"getList"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "messaging/get",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/messaging/getList",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"messaging",
+						"getList"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "messaging/postMessage",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"channel\" : \"\",\r\n    \"content\" : \"\"\r\n}",
+					"options": {
+						"raw": {}
+					}
+				},
+				"url": {
+					"raw": "localhost:6060/messaging/postMessage",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"messaging",
+						"postMessage"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
