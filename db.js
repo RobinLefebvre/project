@@ -7,6 +7,9 @@
 /** Dependencies */
 const MongoClient = require('mongodb').MongoClient;
 
+/** Models - used for specific functionalities  */
+const Channel = require('./models/Channels.js');
+
 /** DB holder */
 var state = { db : null };
 
@@ -47,5 +50,53 @@ exports.close = (callback) =>
       state.mode = null;
       callback(error);
     })
+  }
+}
+
+/** @function dropCollections - Drops the collections existing in DB which fit the list of names passed
+ * @param {Array} list - String names of the collection names to drop
+ * @returns the DB response */
+exports.dropCollections = async (list) =>
+{
+  const collections = (await state.db.listCollections().toArray()).map(collection => collection.name);
+  for (let i = 0; i < list.length; i++) 
+  {
+    console.log(`Dropping ${list[i]} Collection.`);
+    if (collections.indexOf(list[i]) !== -1) 
+      await state.db.dropCollection(list[i]);
+  }
+}
+
+/** @function initializeCollections - Checks that the given Collection names exist, creates them if not
+ * @param {Array} collections - List of collections
+ * @returns undefined */
+exports.initializeCollections = async (collections) => 
+{
+  collections.forEach(async (collectionName) => 
+  {
+    console.log(`Initializing ${collectionName} Collection.`);
+    await state.db.listCollections({name: collectionName}).toArray( async (error, result) => 
+    { 
+      if(error)
+        throw error;
+      if(result.length == 0)
+        await state.db.createCollection(collectionName)
+    });
+  })
+}
+
+/** @function createInitialChannels - Creates messaging Channels based on the given list
+ * @param {Array} collections - List of collections
+ * @returns undefined */
+exports.createInitialChannels = async (list) =>
+{
+  for (let i = 0; i < list.length; i++) 
+  {
+    let ch = await Channel.getByName(list[i])
+    if(!ch)
+    {
+      console.log(`Creating ${list[i]} Channel.`);
+      await Channel.create([], list[i]);
+    }
   }
 }

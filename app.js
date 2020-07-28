@@ -8,15 +8,35 @@ const express = require('express'); // - Express (server & routing)
 const session = require('express-session'); // - Express Session (cookies & sessions)
 const db = require('./db'); // - Custom MongoDB connector (database)
 const responseHandler = require('./middleware/responseHandler'); // - Response Handler (custom middleware for routing logic)
+const config = require('./config'); // - Config file for the server startup
+const morgan = require('morgan'); // - Morgan for loggin API requests
 
 /** Server start */
 const app = express();
-db.connect(`mongodb://localhost:27017`, {useUnifiedTopology : true}, (error) => 
+serverStart();
+
+/** @function serverStart  - Starts the server process, initialize DB and upsert default data. */
+async function serverStart ()
 {
-   if(error) throw new Error(error);
-   console.log("Server is connected to MongoDB.");
-   app.listen(6060, () => { console.log("Server is listening for requests.") });
-});
+  console.log("Starting Server.");
+  db.connect(`mongodb://localhost:27017`, {useUnifiedTopology : true}, async () => 
+  {
+    try
+    {
+      await db.dropCollections([]);
+      await db.initializeCollections(config.collections);
+      await db.createInitialChannels(["Global"]);
+      app.listen(6060, () => 
+      {
+        console.log('Listening to routes on localhost:6060.\n');
+      });
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  });
+};
 
 /** Middleware routing start */
 /** Body Parser */
@@ -24,17 +44,13 @@ app.use(express.json());
 /** Set CORS headers for response */
 app.use(responseHandler.handleCors);
 /** Login - Morgan */
-app.use(require('morgan')(`\n[-- :date --]\n  :remote-addr\n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
+morgan.token('sessionid', function(req, res, param) {return req.sessionID;});
+morgan.token('user', function(req, res, param) {if(req.session.user && req.session.user.name){ return req.session.user.name} return "Anonymous User";});
+app.use(morgan(`\n[-- :date --]\n  :remote-addr\n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
 /** Session management */
-app.use(session( { secret : 'projectSecret', saveUninitialized: true, resave: true } )); 
-
-/** Controllers routing */
-const routes = 
-[
-   { name : "/users", req : require("./controllers/users.js") },
-]
-routes.forEach((route) => { app.use(route.name, route.req) });
-
+app.use(session( { secret : 'projectSecret', saveUninitialized: true, resave: true, cookie: { httpOnly: false, sameSite: false, maxAge: 60000000 } } )); 
+/** Controllers routing - c.f. config.js for configuring the routes and controllers */
+config.routes.forEach((route) => { app.use(route.name, route.req) });
 /** Error log and response */
 app.use(responseHandler.respondError);
 /** Respond 404 on final case */
