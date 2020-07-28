@@ -16,9 +16,7 @@ const Channel = require('../models/Channels');
 /** POST - Create a new Channel with given Users
  * @middleware - auth
  * @param request.body.users - the Channel users
- * @param request.body.name - the Channel name
- * @throws "Missing request parameters", "Must provide users as an array."
- * @returns {Channel} */
+ * @param request.body.name - the Channel name */
 router.post('/create', auth, async (request, response, next) => 
 {
   try
@@ -64,11 +62,9 @@ router.post('/delete', auth, async (request, response, next) =>
   }
 })
 
-/** GET - Gets the Channel with name 
+/** GET - Gets the Channel with uuid 
  * @middleware - auth
- * @param request.query.uuid - the Channel uuid
- * @throws "Missing request parameters.", "Must provide users as an array."
- * @returns {Channel} */
+ * @param request.query.uuid - the Channel uuid */
 router.get('/get', auth, async (request, response, next) => 
 {
   try
@@ -83,14 +79,13 @@ router.get('/get', auth, async (request, response, next) =>
 })
 
 /** GET - Gets the list of Channels available to logged in User.
- * @middleware - auth
- * @returns {Array} the channels list
- * @throws "Collection is empty" & other database errors */
+ * @middleware - auth */
 router.get('/getList', auth, async (request, response, next) => 
 {
   try
   {
-    let result = await Channel.getList(request.session.user.name);
+    let user = request.session.user.name;
+    let result = await Channel.getList(user);
     response.status(200).send(result);
   }
   catch (error)
@@ -102,9 +97,7 @@ router.get('/getList', auth, async (request, response, next) =>
 /** POST - Adds a given message to the given channel 
  * @middleware - auth
  * @param request.body.channel - the Channel ID
- * @param request.body.content - the Message content
- * @throws "Missing request parameters."
- * @returns {Array} the channels list */
+ * @param request.body.content - the Message content */
 router.post('/postMessage', auth, async (request, response, next) => 
 {
   try

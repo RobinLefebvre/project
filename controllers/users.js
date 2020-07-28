@@ -19,8 +19,9 @@ router.post('/create', async (request, response, next) =>
 {
   try 
   {
-    let user = new User(request.body);
-    let result = await user.create();    
+    let b = request.body;
+    let user = new User(b);
+    let result = await user.create();
     await Channel.addUser('Global', result.ops[0].name)
     response.status(200).send(result.insertedId);
   } 
@@ -34,12 +35,13 @@ router.post('/create', async (request, response, next) =>
  * @middleware auth
  * @todo - make and use adminAuth middleware
  * @param request.body.name - the username*/
-router.post('/delete', auth, async (request, response, next) => 
+router.post('/delete', async (request, response, next) => 
 {
   try 
   {
-    let result = await User.remove(request.body.name);
-    if(result)
+    let b = request.body;
+    let u = await User.getByName(b.name);
+    if(u)
     {
       await User.remove(b.name);
       let channels = await Channel.getList(b.name);
@@ -47,11 +49,12 @@ router.post('/delete', auth, async (request, response, next) =>
       {
         channels.forEach(async (ch) => 
         {
-          await Channel.removeUser(ch.uuid, b.name);
+          let r = await Channel.removeUser(ch.uuid, b.name);
         })
       }
     }
-    response.status(200).send(result.ok);
+
+    response.status(200).send({"message" : `User ${b.name} was deleted.`});
   } 
   catch(error)
   {
@@ -59,13 +62,19 @@ router.post('/delete', auth, async (request, response, next) =>
   }
 }); 
 
-/** POST - gets the user data from the database, based on name
+/** GET - gets the user data from the database, based on name
  * @param request.body.name - the user's name */
-router.post('/get', async (request, response, next) => 
+router.get('/get', async (request, response, next) => 
 {
+  let name = request.query.name;
+  if(!name)
+    next({"message" : "Missing request parameters."});
+  if(name == "")
+    next({"message" : "Empty request parameters."});
+
   try
   {
-    let result = await Users.getByName(request.body.name)
+    let result = await User.getByName(name)
     if(result)
       response.status(200).send(result)
   }
@@ -80,7 +89,40 @@ router.get('/getList', async (request, response, next) =>
 {
   try
   {
-    let result = await Users.getList();
+    let result = await User.getList();
+    response.status(200).send(result);
+  }
+  catch(error)
+  {
+    next(error);
+  }
+}); 
+
+/** POST - Adds user from the current user's friends
+ * @middleware auth
+ * @param request.body.name - name of the user to add as friend
+ * @param request.body.pass - the plain text password */
+router.post('/addFriend', auth, async (request, response, next) => 
+{
+  try 
+  {
+    let result = await User.addFriend(request.session.user.name, request.body.name);
+    response.status(200).send(result);
+  }
+  catch(error)
+  {
+    next(error);
+  }
+}); 
+
+/** POST - Removes user from the current user's friends
+ * @middleware auth
+ * @param request.body.name - name of the user to remove from friends */
+router.post('/removeFriend', auth, async (request, response, next) => 
+{
+  try 
+  {
+    let result = await User.removeFriend(request.session.user.name, request.body.name);
     response.status(200).send(result);
   }
   catch(error)
@@ -96,13 +138,20 @@ router.post('/login', async (request, response, next) =>
 {
   if(!request.session.user)
   {
+    let name = request.body.name;
+    let pass = request.body.pass;
+    if(!name || !pass)
+      next({"message" : "Missing request parameters."});
+    if(name == "" || pass == "")
+      next({"message" : "Empty request parameters."});
+  
     try
     {
-      let result = await User.login(request.body.name, request.body.pass);
+      let result = await User.login(name, pass);
       if(result)
       {
         request.session.user = result;
-        response.status(200).send(request.session.user);
+        response.status(200).send(request.session.cookie);
       }
       next();
     }
@@ -112,7 +161,9 @@ router.post('/login', async (request, response, next) =>
     }
   }
   else
-    response.status(200).send(request.session.user);
+  {
+    response.status(200).send(request.session.cookie);
+  }
 });
 
 /** POST - logout current session user */
@@ -133,69 +184,6 @@ router.post('/logout', (request, response, next) =>
   {
     console.log(`Attempting to logout without session.`);
     response.status(200).send({"message" : "Attempting to logout without session."});
-  }
-});
-
-/** POST - Add User to the current logged in User's friends
- * @middleware auth
- * @param request.body.name - name of the user to add as friend
- * @throws "Cannot add yourself as friendé, "User is already a friend", "User doesn't exist" & other database errors */
-router.post('/addFriend', auth, async (request, response, next) => 
-{
-  let friendName = request.body.name;
-  if(!friendName)
-    next({"message" : "Missing request parameters."});
-  if(friendName == "")
-    next({"message" : "Empty request parameters."});
-  if(friendName == request.session.user.name)
-    next({"message" : "Cannot add yourself as friend."});
-  
-  try 
-  {
-    let userFriends = await User.getByName(request.session.user.name);
-    if(userFriends.friends && userFriends.friends.indexOf(friendName) != -1)
-    {
-      next({"message" : `User ${friendName} is already in your friends list.`});
-    }
-    else
-    {
-      let result = await User.addFriend(request.session.user.name, friendName);
-      response.status(200).send(result);
-    }
-  }
-  catch(error)
-  {
-    next(error);
-  }
-});
-
-/** POST - Remove User from the current User's friends
- * @param request.body.name - name of the User to remove as friend
- * @throws "Missing request parameters.", "Empty request parameters.", "User doesn't exist"," User is not in your friends list" & other database errors */
-router.post('/removeFriend', auth, async (request, response, next) => 
-{
-  let friendName = request.body.name;
-  if(!friendName)
-    next({"message" : "Missing request parameters."});
-  if(friendName == "")
-    next({"message" : "Empty request parameters."});
-  
-  try 
-  {
-    let userFriends = await User.getByName(request.session.user.name);
-    if(userFriends.friends && userFriends.friends.indexOf(friendName) != -1)
-    {
-      let result = await User.removeFriend(request.session.user.name, friendName);
-      response.status(200).send(result);
-    }
-    else
-    {
-      next({"message" : `User ${friendName} is not in your friends list.`});
-    }
-  }
-  catch(error)
-  {
-    next(error);
   }
 });
 

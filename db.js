@@ -16,8 +16,7 @@ var state = { db : null };
 /** @function connect - Creates MongoDB connection and stores it
  * @param {String} url - Connection path
  * @param {Object} options - Connection options (useUnifiedTypology, ...)
- * @param {Function} callback - Callback defined to redirect errors and results 
- * @returns The DB connection */
+ * @param {Function} callback - Callback defined to redirect errors and results */
 exports.connect = (url, options, callback) =>
 {
   if(state.db) return callback();
@@ -30,16 +29,14 @@ exports.connect = (url, options, callback) =>
   });
 }
 
-/** @function get - Exposes the database
- * @returns The content of the Singleton-like db state */
+/** @function get - Exposes the database. */
 exports.get = () => 
 {
   return state.db;
 }
 
 /** @function close - Closes the MongoDB connection
- * @param {Function} callback - Callback defined to redirect errors and results 
- * @returns undefined */
+ * @param {Function} callback - Callback defined to redirect errors and results*/
 exports.close = (callback) => 
 {
   if(state.db)
@@ -54,8 +51,7 @@ exports.close = (callback) =>
 }
 
 /** @function dropCollections - Drops the collections existing in DB which fit the list of names passed
- * @param {Array} list - String names of the collection names to drop
- * @returns the DB response */
+ * @param {Array} list - String names of the collection names to drop*/
 exports.dropCollections = async (list) =>
 {
   const collections = (await state.db.listCollections().toArray()).map(collection => collection.name);
@@ -68,8 +64,7 @@ exports.dropCollections = async (list) =>
 }
 
 /** @function initializeCollections - Checks that the given Collection names exist, creates them if not
- * @param {Array} collections - List of collections
- * @returns undefined */
+ * @param {Array} collections - List of collections */
 exports.initializeCollections = async (collections) => 
 {
   collections.forEach(async (collectionName) => 
@@ -86,8 +81,7 @@ exports.initializeCollections = async (collections) =>
 }
 
 /** @function createInitialChannels - Creates messaging Channels based on the given list
- * @param {Array} collections - List of collections
- * @returns undefined */
+ * @param {Array} collections - List of collections */
 exports.createInitialChannels = async (list) =>
 {
   for (let i = 0; i < list.length; i++) 

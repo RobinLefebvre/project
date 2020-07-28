@@ -23,14 +23,14 @@ module.exports = class User
 
   /** @function create - adds a new User into database
   * @returns the database response
-  * @throws "User already exists" & other database errors */
+  * @throws "User already exists"  */
   async create()
   {
     try
     {
       console.log(`Creating new User ${this.name}.`);
-
       let usersCollection = db.get().collection('users');
+
       let user = await usersCollection.findOne({name : this.name})
       if(user !== null) 
         throw new Error("User already exists.");
@@ -46,13 +46,17 @@ module.exports = class User
   /** @function remove - remove the User from database
   * @param name - the User's name
   * @returns the database response
-  * @throws "Empty request parameters", "User doesn't exist" & other database errors */
+  * @throws "Empty request parameters", "User doesn't exist"  */
   static async remove(name)
   {
     try
     {
+      if(!name)
+        throw new Error("Empty request parameters.")
+        
       console.log(`Removing User ${name}.`);
       let usersCollection = db.get().collection('users');
+
       let user = await usersCollection.findOne({name : name})
       if(user == null) 
         throw new Error("User doesn't exists.");
@@ -68,14 +72,17 @@ module.exports = class User
   /** @function getByName - gets a user from its name
    * @param {String} name - the username
    * @returns the user record in DB 
-   * @throws "Empty request parameters", "User doesn't exist" & other database errors */
+   * @throws "Empty request parameters", "User doesn't exist"  */
   static async getByName(name)
   {
     try
     {
-      console.log(`Getting user ${name} 's data.`);
+      if(!name)
+        throw new Error("Empty request parameters.")
 
+      console.log(`Getting user ${name} 's data.`);
       let usersCollection = db.get().collection('users');
+
       let user = await usersCollection.findOne({name : name}); 
       if(!user)
         throw new Error("User doesn't exist.");
@@ -88,9 +95,9 @@ module.exports = class User
     }
   }
 
-  /** @function getList - gets the whole list of users
+  /** @function getList - gets the whole list of Users
    * @returns {Array} List of user names
-   * @throws "Collection is empty" & other database errors */
+   * @throws "Collection is empty" */
   static async getList()
   {
     try 
@@ -109,11 +116,79 @@ module.exports = class User
     }
   }
 
+  /** @function addFriend - adds a new User to the friends list
+   * @param {String} name - name of current user
+   * @param {String} friendName - name of the friend
+   * @returns current user
+   * @throws "Missing request parameters", "Cannot add yourself as friend", "User is already in your friends list" "User doesn't exist"  */
+  static async addFriend(name, friendName)
+  {
+    try
+    {
+      if(!friendName || friendName == "")
+        throw new Error("Missing request parameters.");
+      if(friendName == name)
+        throw new Error("Cannot add yourself as friend.");
+      
+      let userFriends = await User.getByName(request.session.user.name);
+      if(userFriends.friends && userFriends.friends.indexOf(friendName) != -1)
+        throw new Error(`User ${friendName} is already in your friends list.`);
+      console.log(`Adding ${friendName} into ${name}'s friends.`);
+
+      let usersCollection = db.get().collection('users');
+
+      let friend = await usersCollection.findOne({name : friendName});
+      if(!friend) throw new Error("User doesn't exist.");
+
+      let user = await usersCollection.findOneAndUpdate({name : name}, {"$push" : { "friends" : friend.name }});
+      if(!user) throw new Error("User doesn't exist.");
+      
+      return user;
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  }
+
+  /** @function removeFriend - removes a User from the friends list
+   * @param {String} name - name of current user
+   * @param {String} friendName - name of the friend
+   * @returns current user
+   * @throws "Missing request parameters", "`User is not in your friends list", "User doesn't exist"  */
+  static async removeFriend(name, friendName)
+  {
+    try
+    {
+      if(!friendName || friendName == "")
+        throw new Error("Missing request parameters.");
+      
+      let userFriends = await User.getByName(request.session.user.name);
+      if(userFriends.friends && userFriends.friends.indexOf(friendName) == -1)
+        throw new Error(`User ${friendName} is not in your friends list.`);
+    
+      console.log(`Removing ${friendName} from ${name}'s friends.`);
+      let usersCollection = db.get().collection('users');
+
+      let friend = await usersCollection.findOne({name : friendName});
+      if(!friend) throw new Error("User doesn't exist.");
+
+      let user = await usersCollection.findOneAndUpdate({name : name}, {$pull: { friends: friendName }} );
+      if(!user) throw new Error("User doesn't exist.");
+      
+      return user;
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  }
+  
   /** @function login - checks validity of data against user database
    * @param {String} name - the username
    * @param {String} pass - the plain text password 
    * @returns true 
-   * @throws "Empty request parameters", "User doesn't exist", "Mismatched password" & other database errors */
+   * @throws user doesn't exist, password mismatch  */
   static async login(name, pass)
   {
     try
@@ -137,59 +212,5 @@ module.exports = class User
     {
       throw error;
     }  
-  }
-  
-  /** @function addFriend - adds a new user the friends list
-   * @param {String} name - name of current user
-   * @param {String} friendName - name of the friend
-   * @returns the user
-   * @throws user doesn't exist, friend doesn't exist & other database errors */
-  static async addFriend(name, friendName)
-  {
-    try
-    {
-      console.log(`Adding ${friendName} into ${name}'s friends.`);
-
-      let usersCollection = db.get().collection('users');
-
-      let friend = await usersCollection.findOne({name : friendName});
-      if(!friend) throw new Error("User doesn't exist.");
-
-      let user = await usersCollection.findOneAndUpdate({name : name}, {"$push" : { "friends" : friend.name }});
-      if(!user) throw new Error("User doesn't exist.");
-      
-      return user;
-    }
-    catch(error)
-    {
-      throw error;
-    }
-  }
-
-  /** @function addFriend - adds a new user the friends list
-   * @param {String} name - name of current user
-   * @param {String} friendName - name of the friend
-   * @returns the user
-   * @throws user doesn't exist, friend doesn't exist & other database errors */
-  static async removeFriend(name, friendName)
-  {
-    try
-    {
-      console.log(`Removing ${friendName} from ${name}'s friends.`);
-
-      let usersCollection = db.get().collection('users');
-
-      let friend = await usersCollection.findOne({name : friendName});
-      if(!friend) throw new Error("User doesn't exist.");
-
-      let user = await usersCollection.findOneAndUpdate({name : name}, {$pull: { friends: friendName }} );
-      if(!user) throw new Error("User doesn't exist.");
-      
-      return user;
-    }
-    catch(error)
-    {
-      throw error;
-    }
   }
 }

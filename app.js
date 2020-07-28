@@ -38,20 +38,20 @@ async function serverStart ()
   });
 };
 
-/** Middleware routing start */
+/** Middleware routing - All requests go through the following sequence of routes : */
 /** Body Parser */
 app.use(express.json());
 /** Set CORS headers for response */
 app.use(responseHandler.handleCors);
-/** Login - Morgan */
+/** Console Logs - Morgan */
 morgan.token('sessionid', function(req, res, param) {return req.sessionID;});
 morgan.token('user', function(req, res, param) {if(req.session.user && req.session.user.name){ return req.session.user.name} return "Anonymous User";});
 app.use(morgan(`\n[-- :date --]\n :user - :sessionid @ :remote-addr \n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
-/** Session management */
+/** Sessions management */
 app.use(session( { secret : 'projectSecret', saveUninitialized: true, resave: true, cookie: { httpOnly: false, sameSite: false, maxAge: 60000000 } } )); 
 /** Controllers routing - c.f. config.js for configuring the routes and controllers */
 config.routes.forEach((route) => { app.use(route.name, route.req) });
 /** Error log and response */
 app.use(responseHandler.respondError);
-/** Respond 404 on final case */
+/** Respond 404 on the rest of the server */
 app.use(responseHandler.respond404);
