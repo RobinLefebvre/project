@@ -17,8 +17,14 @@ module.exports = class User
     if(args.name == "" || args.pass == "")
       throw new Error("Empty request parameters.");
 
+    this._id = args._id;
     this.name = args.name;
-    this.pass = encrypt.encryptPass(args.pass);
+
+    if(!args.pass.salt)
+      this.pass = encrypt.encryptPass(args.pass);
+
+    this.friends = args.friends || [];
+    this.blocked = args.blocked || [];
   }
 
   /** @function create - adds a new User into database
@@ -31,8 +37,8 @@ module.exports = class User
       console.log(`Creating new User ${this.name}.`);
       let usersCollection = db.get().collection('users');
 
-      let user = await usersCollection.findOne({name : this.name})
-      if(user !== null) 
+      let userExists = await usersCollection.findOne({name : this.name})
+      if(userExists !== null) 
         throw new Error("User already exists.");
 
       return (await usersCollection.insertOne(this))
@@ -78,7 +84,7 @@ module.exports = class User
     try
     {
       if(!name)
-        throw new Error("Empty request parameters.")
+        throw new Error("Empty request parameters.");
 
       console.log(`Getting user ${name} 's data.`);
       let usersCollection = db.get().collection('users');
@@ -87,7 +93,7 @@ module.exports = class User
       if(!user)
         throw new Error("User doesn't exist.");
       
-      return user;
+      return (new User(user));
     }
     catch(error)
     {
@@ -104,7 +110,7 @@ module.exports = class User
     {
       console.log(`Getting users list.`);
       let usersCollection = db.get().collection('users');
-      let users = await usersCollection.find({}).project({name : 1}).toArray();
+      let users = (await usersCollection.find({}).project({_id: 0, name : 1}).toArray()).map(user => user.name);
       if(users.length == 0)
         throw new Error("Collection is empty.");
       
@@ -116,34 +122,86 @@ module.exports = class User
     }
   }
 
-  /** @function addFriend - adds a new User to the friends list
-   * @param {String} name - name of current user
-   * @param {String} friendName - name of the friend
+  /** @function verifyExists - checks that the whole list of user exists
+   * @param {Array} list - Array of user names
+   * @returns {Boolean} true
+   * @throws "Users must be provided as an Array.", "User doesn't exist" */
+  static async verifyExists(list)
+  {
+    if(!Array.isArray(list))
+      throw new RangeError("Users must be provided as an Array.");
+
+    for(let i = 0; i < list.length; i++)
+    {
+      let foundUser = await User.getByName(list[i]);
+      if(!foundUser)
+        throw new Error("User doesn't exist");
+    }
+    return true;
+  }
+
+  /** @function updateRelationship - Manages the addition or removal of users into the current user's Friends and Blocked lists
+   * @param {String} action - Action to perform : "friend", "removeFriend", "block", "removeBlock"
+   * @param {String} username - name of the user to deal with
    * @returns current user
-   * @throws "Missing request parameters", "Cannot add yourself as friend", "User is already in your friends list" "User doesn't exist"  */
-  static async addFriend(name, friendName)
+   * @throws "Missing request parameters", "User doesn't exist", "User is already/not in your friends/blocked list" */
+  async updateRelationship(action, username)
   {
     try
     {
-      if(!friendName || friendName == "")
-        throw new Error("Missing request parameters.");
-      if(friendName == name)
-        throw new Error("Cannot add yourself as friend.");
-      
-      let userFriends = await User.getByName(request.session.user.name);
-      if(userFriends.friends && userFriends.friends.indexOf(friendName) != -1)
-        throw new Error(`User ${friendName} is already in your friends list.`);
-      console.log(`Adding ${friendName} into ${name}'s friends.`);
-
       let usersCollection = db.get().collection('users');
 
-      let friend = await usersCollection.findOne({name : friendName});
-      if(!friend) throw new Error("User doesn't exist.");
+      // Validate request - Action
+      let isValidAction = (action !== undefined && (action == "friend" || action == "removeFriend" || action == "block" || action == "removeBlock") )
+      if(isValidAction === false )
+        throw new Error("Action is invalid.");
 
-      let user = await usersCollection.findOneAndUpdate({name : name}, {"$push" : { "friends" : friend.name }});
-      if(!user) throw new Error("User doesn't exist.");
-      
-      return user;
+      // Validate request - User
+      let otherUser = await User.getByName(username);
+      if(otherUser === undefined)
+        throw new Error("User doesn't exist.");
+
+      switch(action)
+      {
+        case "friend":
+          // Add friend if not exist
+          if(this.friends.indexOf(username) > -1)
+            throw new Error("User is already in your friends list.");
+
+          this.friends.push(username);
+          (usersCollection.findOneAndUpdate({"name" : this.name}, {"$push" : { "friends" : username }}));
+          break;
+          
+        case "removeFriend":
+          // Remove friend if exists
+          let iRf = this.friends.indexOf(username)
+          if(iRf == -1)
+            throw new Error("User is not in your friends list.");
+
+          this.friends.splice(iRf, 1);
+          (usersCollection.findOneAndUpdate({"name" : this.name}, {"$pull": { "friends": username }}) );
+          break;
+
+        case "block":
+          // Add block if not exists
+          if(this.blocked.indexOf(username) > -1)
+            throw new Error("User is already in your blocked list.");
+            
+          this.blocked.push(username);
+          (usersCollection.findOneAndUpdate({"name" : this.name}, {"$push" : { "blocked" : username }}));
+          break;
+
+        case "removeBlock":          
+          // Remove block if exists
+          let iRb = this.blocked.indexOf(username) 
+          if(iRb == -1)
+            throw new Error("User is not in your blocked list.");
+            
+          this.blocked.splice(iRb, 1);
+          (usersCollection.findOneAndUpdate({"name" : this.name}, {"$pull": { "blocked" : username }} ));
+          break;
+      }
+      return this;
     }
     catch(error)
     {
@@ -151,39 +209,6 @@ module.exports = class User
     }
   }
 
-  /** @function removeFriend - removes a User from the friends list
-   * @param {String} name - name of current user
-   * @param {String} friendName - name of the friend
-   * @returns current user
-   * @throws "Missing request parameters", "`User is not in your friends list", "User doesn't exist"  */
-  static async removeFriend(name, friendName)
-  {
-    try
-    {
-      if(!friendName || friendName == "")
-        throw new Error("Missing request parameters.");
-      
-      let userFriends = await User.getByName(request.session.user.name);
-      if(userFriends.friends && userFriends.friends.indexOf(friendName) == -1)
-        throw new Error(`User ${friendName} is not in your friends list.`);
-    
-      console.log(`Removing ${friendName} from ${name}'s friends.`);
-      let usersCollection = db.get().collection('users');
-
-      let friend = await usersCollection.findOne({name : friendName});
-      if(!friend) throw new Error("User doesn't exist.");
-
-      let user = await usersCollection.findOneAndUpdate({name : name}, {$pull: { friends: friendName }} );
-      if(!user) throw new Error("User doesn't exist.");
-      
-      return user;
-    }
-    catch(error)
-    {
-      throw error;
-    }
-  }
-  
   /** @function login - checks validity of data against user database
    * @param {String} name - the username
    * @param {String} pass - the plain text password 

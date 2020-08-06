@@ -13,6 +13,17 @@ const auth = require('../middleware/auth');
 const User = require('../models/Users');
 const Channel = require('../models/Channels');
 
+/** GET - gets the whole list of users from the database 
+ * @middleware auth */
+router.get('/isAuth', auth, async (request, response, next) => 
+{
+  console.log(`Checking auth on user ${request.session.user.name}`)
+  if(request.session && request.session.user)
+    response.status(200).send({"ok" : true});
+  else
+    next();
+}); 
+
 /** POST - adds the User into the database
  * @param {Object} request.body - {name : String, pass : String} */
 router.post('/create', async (request, response, next) => 
@@ -21,9 +32,9 @@ router.post('/create', async (request, response, next) =>
   {
     let b = request.body;
     let user = new User(b);
-    let result = await user.create();
-    await Channel.addUser('Global', result.ops[0].name)
-    response.status(200).send(result.insertedId);
+    await user.create();
+    await Channel.addUserToGlobal(user.name)
+    response.status(200).send(user);
   } 
   catch(error)
   {
@@ -35,26 +46,17 @@ router.post('/create', async (request, response, next) =>
  * @middleware auth
  * @todo - make and use adminAuth middleware
  * @param request.body.name - the username*/
-router.post('/delete', async (request, response, next) => 
+router.post('/delete', auth, async (request, response, next) => 
 {
   try 
   {
-    let b = request.body;
-    let u = await User.getByName(b.name);
+    let u = await User.getByName(request.body.name);
     if(u)
     {
-      await User.remove(b.name);
-      let channels = await Channel.getList(b.name);
-      if(channels)
-      {
-        channels.forEach(async (ch) => 
-        {
-          let r = await Channel.removeUser(ch.uuid, b.name);
-        })
-      }
+      await User.remove(request.body.name);
+      await Channel.removeUserFromChannels(request.body.name);
+      response.status(200).send({"message" : `User ${request.body.name} was deleted.`});
     }
-
-    response.status(200).send({"message" : `User ${b.name} was deleted.`});
   } 
   catch(error)
   {
@@ -66,15 +68,27 @@ router.post('/delete', async (request, response, next) =>
  * @param request.body.name - the user's name */
 router.get('/get', async (request, response, next) => 
 {
-  let name = request.query.name;
-  if(!name)
-    next({"message" : "Missing request parameters."});
-  if(name == "")
-    next({"message" : "Empty request parameters."});
-
   try
   {
+    let name = request.query.name;
     let result = await User.getByName(name)
+    if(result)
+      response.status(200).send(result)
+  }
+  catch (error) 
+  {
+    next(error);
+  }
+}); 
+
+/** GET - gets the logged in user's data
+ * @middleware auth
+ * @param request.body.name - the user's name */
+router.get('/getSelf', auth, async (request, response, next) => 
+{
+  try
+  {
+    let result = await User.getByName(request.session.user.name)
     if(result)
       response.status(200).send(result)
   }
@@ -98,32 +112,20 @@ router.get('/getList', async (request, response, next) =>
   }
 }); 
 
-/** POST - Adds user from the current user's friends
- * @middleware auth
- * @param request.body.name - name of the user to add as friend
- * @param request.body.pass - the plain text password */
-router.post('/addFriend', auth, async (request, response, next) => 
+/** POST - Manages the addition or removal of users into the current user's Friends and Blocked lists
+ * @middleware auth 
+ * @param request.body.action - Action to perform : "friend", "removeFriend", "block", "removeBlock"
+ * @param request.body.name - name of the user to deal with */
+router.post('/updateRelationship', auth, async (request, response, next) => 
 {
   try 
-  {
-    let result = await User.addFriend(request.session.user.name, request.body.name);
-    response.status(200).send(result);
-  }
-  catch(error)
-  {
-    next(error);
-  }
-}); 
-
-/** POST - Removes user from the current user's friends
- * @middleware auth
- * @param request.body.name - name of the user to remove from friends */
-router.post('/removeFriend', auth, async (request, response, next) => 
-{
-  try 
-  {
-    let result = await User.removeFriend(request.session.user.name, request.body.name);
-    response.status(200).send(result);
+  {    
+    let currentUser = await User.getByName(request.session.user.name);
+    if(currentUser)
+    {
+      let result = await currentUser.updateRelationship(request.body.action, request.body.name);
+      response.status(200).send(result);
+    }
   }
   catch(error)
   {
@@ -151,7 +153,7 @@ router.post('/login', async (request, response, next) =>
       if(result)
       {
         request.session.user = result;
-        response.status(200).send(request.session.cookie);
+        response.status(200).send(request.session);
       }
       next();
     }
@@ -162,9 +164,10 @@ router.post('/login', async (request, response, next) =>
   }
   else
   {
-    response.status(200).send(request.session.cookie);
+    response.status(200).send(request.session);
   }
 });
+
 
 /** POST - logout current session user */
 router.post('/logout', (request, response, next) => 

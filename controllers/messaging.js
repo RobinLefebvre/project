@@ -22,22 +22,14 @@ router.post('/create', auth, async (request, response, next) =>
   try
   {
     let users = request.body.users;
-    let name = request.body.name;
-    if(!users || !name)
-      throw new Error("Missing request parameters."); 
-    if(!Array.isArray(users) || users.length == 0 || name == "")
-      throw new Error("Invalid request parameters.");
-
-    // Check users are valid
-    for(let i = 0; i < users.length; i++)
+    let usersExist = await User.verifyExists(users);
+    if(usersExist)
     {
-      let foundUser = await User.getByName(users[i]);
-      if(!foundUser)
-        throw new Error("User doesn't exist");
+      let channel = new Channel({"name" : request.body.name, "users" : users});
+      let result = await channel.create();
+      if(result)
+        response.status(200).send(channel);
     }
-
-    let result = await Channel.create(users, name);
-    response.status(200).send(result.insertedId);
   }
   catch (error)
   {
@@ -53,8 +45,8 @@ router.post('/delete', auth, async (request, response, next) =>
 {
   try
   {
-    let result = await Channel.delete(request.body.uuid);
-    response.status(200).send(result.insertedId);
+    Channel.delete(request.body.uuid);
+    response.status(200).send(`Channel ${request.body.uuid} was deleted.`);
   }
   catch (error)
   {
@@ -69,7 +61,7 @@ router.get('/get', auth, async (request, response, next) =>
 {
   try
   {
-    let result = await Channel.getByUuid(request.session.user.name, request.query.uuid);
+    let result = await Channel.getByUuid(request.query.uuid);
     response.status(200).send(result);
   }
   catch (error)
@@ -84,8 +76,7 @@ router.get('/getList', auth, async (request, response, next) =>
 {
   try
   {
-    let user = request.session.user.name;
-    let result = await Channel.getList(user);
+    let result = await Channel.getList(request.session.user.name);
     response.status(200).send(result);
   }
   catch (error)
@@ -102,8 +93,10 @@ router.post('/postMessage', auth, async (request, response, next) =>
 {
   try
   {
-    let result = await Channel.postMessage( request.body.channel, request.session.user.name, request.body.content);
-    response.status(200).send(result);
+    let channel = await Channel.getByUuid(request.body.channel);
+    let result = await channel.postMessage(request.session.user.name, request.body.content);
+    if(result) 
+      response.status(200).send(result);
   }
   catch (error)
   {

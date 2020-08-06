@@ -10,24 +10,32 @@ const { v4: uuidv4 } = require('uuid');
 
 module.exports = class Channel
 {
-  /** @function create - creates a new Channel
-   * @param user - the array of users
-   * @param name - the name of the channel
-   * @returns {Array} List of user names
+  constructor(args)
+  {
+    if(args.users === undefined || !Array.isArray(args.users) )
+      throw new RangeError("Users must be provided as an array.");
+    if(args.name === undefined || args.name === "")
+      throw new RangeError("Name must be provided.");
+
+    this.name = args.name;
+    this.uuid = args.uuid || uuidv4();
+    this.users = args.users;
+    this.messages = args.messages || [];
+    this.createdOn = args.createdOn || new Date().getTime();
+  }
+
+  /** @function create - creates the current Channel into database
+   * @returns the DB response
    * @throws "Users must be an array", "Name must be provided" */
-  static async create(users, name)
+  async create()
   {
     try
     {
-      if(!users instanceof Array)
-        throw new RangeError("Users must be an array.");
-      if(!name || name == "")
-        throw new RangeError("Name must be provided.");
-
-      let channelsCollection = db.get().collection('channels');
-      let data = { uuid : uuidv4(), name : name, users : users, messages : [], createdOn : new Date().getTime() };
-
-      return (await channelsCollection.insertOne(data))
+      console.log(`Creating Channel ${this.uuid} under name ${this.name}.`);
+      let coll = db.get().collection('channels');
+      let channelExists = await coll.findOne({"uuid" : this.uuid})
+      if(channelExists === null)
+        return (await coll.insertOne(this))
     }
     catch(error)
     {
@@ -43,10 +51,13 @@ module.exports = class Channel
   {
     try
     {
+      console.log(`Deleting Channel ${uuid}.`);
+      let coll = db.get().collection('channels');
+
       if(!uuid)
         throw new Error("Missing request parameters");
 
-      return (await channelsCollection.removeOne({uuid: uuid}))
+      return (await coll.removeOne({"uuid": uuid}))
     }
     catch(error)
     {
@@ -62,7 +73,7 @@ module.exports = class Channel
     try
     {
       console.log(`Getting list of Channels.`);
-      let result = (await db.get().collection('channels').find({users : name}).project({_id : 0, name : 1, uuid: 1, users : 1}).toArray());
+      let result = (await db.get().collection('channels').find({"users" : name}).project({_id : 0, name : 1, uuid: 1, users : 1}).toArray());
       if(result.length == 0)
         throw new Error("Empty collection.");
 
@@ -78,12 +89,18 @@ module.exports = class Channel
    * @deprecated - Only used at init server stage
    * @param name - the Channel's name 
    * @throws "Channel doesn't exist", "Empty request parameters" */
-  static async getByName( name)
+  static async getByName(name)
   {
     try
     {
-      console.log(`Getting Channel ${name}`);
-      let result = (await db.get().collection('channels').findOne({name : name}))
+      if(!name || name == "")
+        throw new Error("Channel name must be provided.");
+        
+      console.log(`Getting ${name} Channel.`);
+      let result = (await db.get().collection('channels').findOne({"name" : name}))
+      if(!result)
+        throw new Error("Channel doesn't exist.");
+
       return result;
     }
     catch(error)
@@ -93,21 +110,21 @@ module.exports = class Channel
   }
 
   /** @function getByUuid - get a Channel by uuid
-   * @param user - the current logged in user name
    * @param uuid - the Channel's uuid identifier
-   * @throws "Channel doesn't exist", "Empty request parameters" */
-  static async getByUuid(user, uuid)
+   * @throws "Channel uuid must be provided", "Channel doesn't exist, or you are not a part of it" */
+  static async getByUuid(uuid)
   {
     try
     {
-      if(!user || !uuid || user == "" || uuid == "")
-        throw new Error("Empty request parameters.");
-        
-      console.log(`Getting Channel ${uuid}`);
-      let result = ( await db.get().collection('channels').findOne({users: user, uuid : uuid},{ projection: {uuid : 1, users : 1, messages : 1, name : 1}}) )
+      if(!uuid || uuid == "")
+        throw new Error("Channel uuid must be provided.");
+
+      console.log(`Getting Channel ${uuid}.`);
+      let result = ( await db.get().collection('channels').findOne({"uuid" : uuid},{ "projection": {"uuid" : 1, "users" : 1, "messages" : 1, "name" : 1}}) )
       if(!result)
-        throw new Error("Channel doesn't exist.");
-      return result;
+        throw new Error("Channel doesn't exist, or you are not a part of it.");
+
+      return new Channel(result);
     }
     catch(error)
     {
@@ -116,21 +133,43 @@ module.exports = class Channel
   }
 
   /** @function postMessage - Add user to channel
-   * @param {String} channelID - the Channel's uuid
-   * @param {String} username - the message author's name
    * @param {String} content - the message's content
    * @returns the database response
    * @throws user doesn't exists & other database errors */
-  static async postMessage(channelID, username, content)
+  async postMessage(username, content)
   {
     try
     {
-      if(!channelID || !username || ! content)
-        throw new Error("Missing request parameters");
-  
-      console.log(`${username} is posting \n ${content} into Channel ${channelID}.`);
-      let channelsCollection = db.get().collection('channels')
-      return (await channelsCollection.findOneAndUpdate({uuid : channelID}, {$push : {messages : {author : username, content : content}}})); 
+      if(content === undefined || content == "")
+        throw new Error("Content must be provided.");
+
+      console.log(`${username} is posting \n ${content} into Channel ${this.uuid}.`);
+      let coll = db.get().collection('channels')
+      let message =  {author : username, content : content, sentOn : (new Date().getTime()) };
+
+      this.messages.push(message);
+      coll.findOneAndUpdate( {"uuid" : this.uuid}, {$push : {"messages" : message}});
+      return this;
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  }
+
+  /** @function postSystemMessage - Post a System Message to a Channel
+   * @param {String} channelID - the Channel's uuid
+   * @param {String} message - the message
+   * @returns the user record in DB 
+   * @throws user doesn't exists & other database errors */
+  async postSystemMessage(content)
+  {
+    try
+    {
+      let coll = db.get().collection('channels');
+      let message = {author : "System", content : content, sentOn : new Date().getTime()}
+      this.messages.push(message);
+      return (await coll.findOneAndUpdate({"uuid" : this.uuid}, {$push : {"messages" : message}})); 
     }
     catch(error)
     {
@@ -139,17 +178,21 @@ module.exports = class Channel
   }
 
   /** @function addUser - Adds User to Channel
-   * @param {String} channelName - the Channel's name
    * @param {String} username - the username
    * @returns the user record in DB 
-   * @throws user doesn't exists & other database errors */
-  static async addUser(channelName, username)
+   * @throws "User is already part of Channel" & other database errors */
+  async addUser(username)
   {
     try
     {
-      console.log(`Getting user ${username} into Channel ${channelName}.`);
-      let channelsCollection = db.get().collection('channels')
-      return (await channelsCollection.findOneAndUpdate({name : channelName}, {$push : {users : username}})); 
+      console.log(`Getting user ${username} into Channel ${this.uuid}.`);
+      if(this.users.indexOf(username) > -1)
+        throw new Error("User is already part of Channel.");
+
+      let coll = db.get().collection('channels');
+      this.postSystemMessage(`${username} has joined.`);
+      this.users.push(username);
+      return (await coll.findOneAndUpdate({"uuid" : this.uuid}, {$push: {"users" : username}})); 
     }
     catch(error)
     {
@@ -157,18 +200,69 @@ module.exports = class Channel
     }
   }
 
-  /** @function removeUser - Removes User from Channel
-   * @param {String} channelID - the Channel's id
+  /** @function addUserToGlobal - Adds User to the Global Channel - should only be used by the User Creation process
    * @param {String} username - the username
-   * @returns the user record in DB 
-   * @throws user doesn't exists & other database errors */
-  static async removeUser(channelID, username)
+   * @returns undefined */
+  static async addUserToGlobal(username)
   {
     try
     {
-      console.log(`Removing user ${username} from Channel ${channelID}.`);
-      let channelsCollection = db.get().collection('channels')
-      return (await channelsCollection.findOneAndUpdate({uuid : channelID}, {$pull : {users : username}})); 
+      console.log(`Getting user ${username} into the Global Channel.`);
+      let c = db.getGlobalChannel();
+      let global = new Channel(c);
+      global.addUser(username); 
+      return;
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  }
+
+  /** @function removeUser - Removes User from Channel - deletes Channel 
+   * @param {String} username - the username
+   * @returns the user record in DB 
+   * @throws user doesn't exists & other database errors */
+  async removeUser(username)
+  {
+    try
+    {
+      let index = this.users.indexOf(username);
+      if(index == -1)
+        throw new Error("User is not part of Channel.");
+
+      console.log(`Removing user ${username} from Channel ${this.uuid}.`);
+      this.users.splice(index, 1);
+      if(this.users.length <= 1 && this.name !== "Global")
+      {
+        return (await Channel.delete(this.uuid));
+      }
+      else
+      {
+        let coll = db.get().collection('channels');
+        await this.postSystemMessage(`${username} has left.`);
+        return (await coll.findOneAndUpdate({"uuid" : this.uuid}, {$pull : {"users" : username}})); 
+      }
+    }
+    catch(error)
+    {
+      throw error;
+    }
+  }
+
+  /** @function removeUserFromChannels - Removes User from all Channels they're a part of 
+   * @param {String} username - the username */
+  static async removeUserFromChannels(username)
+  {
+    try
+    {
+      let list = await Channel.getList(username);
+      for(let i = 0; i < list.length; i++)
+      {
+        let channel = new Channel(list[i]);
+        await channel.removeUser(username);
+      }
+      return true;
     }
     catch(error)
     {

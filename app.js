@@ -19,13 +19,13 @@ serverStart();
 async function serverStart ()
 {
   console.log("Starting Server.");
-  db.connect(`mongodb://localhost:27017`, {useUnifiedTopology : true}, async () => 
+  await db.connect("mongodb://localhost:27017", {useUnifiedTopology: true}, async () => 
   {
     try
     {
-      await db.dropCollections([]);
-      await db.initializeCollections(config.collections);
-      await db.createInitialChannels(["Global"]);
+      await db.dropCollections(config.dropCollections);
+      await db.initializeCollections(config.initialCollections);
+      await db.createGlobalChannel(["Global"]);
       app.listen(6060, () => 
       {
         console.log('Listening to routes on localhost:6060.\n');
@@ -45,7 +45,7 @@ app.use(express.json());
 app.use(responseHandler.handleCors);
 /** Console Logs - Morgan */
 morgan.token('sessionid', function(req, res, param) {return req.sessionID;});
-morgan.token('user', function(req, res, param) {if(req.session.user && req.session.user.name){ return req.session.user.name} return "Anonymous User";});
+morgan.token('user', function(req, res, param) {if(req.session && req.session.user && req.session.user.name){ return req.session.user.name} return "Anonymous User";});
 app.use(morgan(`\n[-- :date --]\n :user - :sessionid @ :remote-addr \n - :method \t\t- :url \n - Response Status \t- :status \n - Response Size \t- :res[content-length] bytes \n - Response Time \t- :response-time ms\n`)); 
 /** Sessions management */
 app.use(session( { secret : 'projectSecret', saveUninitialized: true, resave: true, cookie: { httpOnly: false, sameSite: false, maxAge: 60000000 } } )); 

@@ -18,7 +18,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n   \"name\": \"Nobby\",\n   \"pass\": \"admin\"\n}",
+					"raw": "{\n   \"name\": \"Dams\",\n   \"pass\": \"admin\"\n}",
 					"options": {
 						"raw": {}
 					}
@@ -70,7 +70,7 @@
 			"response": []
 		},
 		{
-			"name": "users/addFriend",
+			"name": "users/updateRelationship",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -82,7 +82,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"name\" : \"Dams\"\n}",
+					"raw": "{\n\t\"name\" : \"\"\n}",
 					"options": {
 						"raw": {}
 					}
@@ -102,32 +102,26 @@
 			"response": []
 		},
 		{
-			"name": "users/removeFriend",
+			"name": "users/isAuth",
 			"request": {
-				"method": "POST",
+				"method": "GET",
 				"header": [
 					{
 						"key": "Content-Type",
 						"type": "text",
-						"value": "application/json"
+						"value": "application/json",
+						"disabled": true
 					}
 				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"name\" : \"\"\n}",
-					"options": {
-						"raw": {}
-					}
-				},
 				"url": {
-					"raw": "localhost:6060/users/removeFriend",
+					"raw": "localhost:6060/users/isAuth",
 					"host": [
 						"localhost"
 					],
 					"port": "6060",
 					"path": [
 						"users",
-						"removeFriend"
+						"isAuth"
 					]
 				}
 			},
@@ -146,7 +140,7 @@
 					}
 				],
 				"url": {
-					"raw": "localhost:6060/users/get?name=Nobby",
+					"raw": "localhost:6060/users/get?name=",
 					"host": [
 						"localhost"
 					],
@@ -158,8 +152,34 @@
 					"query": [
 						{
 							"key": "name",
-							"value": "Nobby"
+							"value": ""
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "users/getSelf",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "localhost:6060/users/getSelf",
+					"host": [
+						"localhost"
+					],
+					"port": "6060",
+					"path": [
+						"users",
+						"getSelf"
 					]
 				}
 			},
@@ -204,7 +224,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"name\" : \"Nobby\", \n\t\"pass\" : \"admin\"\n}",
+					"raw": "{\n\t\"name\" : \"\", \n\t\"pass\" : \"\"\n}",
 					"options": {
 						"raw": {}
 					}
@@ -262,7 +282,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"name\" : \"\",\n\t\"users\" : [\"Nobby\", \"\"]\n}",
+					"raw": "{\n\t\"name\" : \"\",\n\t\"users\" : [\"\", \"\"]\n}",
 					"options": {
 						"raw": {}
 					}
@@ -352,14 +372,20 @@
 					}
 				],
 				"url": {
-					"raw": "localhost:6060/messaging/getList",
+					"raw": "localhost:6060/messaging/get?uuid=",
 					"host": [
 						"localhost"
 					],
 					"port": "6060",
 					"path": [
 						"messaging",
-						"getList"
+						"get"
+					],
+					"query": [
+						{
+							"key": "uuid",
+							"value": ""
+						}
 					]
 				}
 			},
